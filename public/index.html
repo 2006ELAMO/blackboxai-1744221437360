@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wii to PS2 Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gradient-to-r from-blue-500 to-purple-800 min-h-screen flex items-center">
+  <div class="max-w-md mx-auto p-8 bg-white rounded-lg shadow-xl w-full">
+    <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">
+      <i class="fas fa-gamepad mr-2"></i>Wii to PS2 Converter
+    </h1>
+    
+    <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition">
+      <i class="fas fa-file-upload text-4xl text-blue-500 mb-3"></i>
+      <p class="text-gray-600 mb-2">Drag & drop your Wii .rvz file here</p>
+      <p class="text-sm text-gray-500 mb-4">or</p>
+      <input type="file" id="fileInput" accept=".rvz" class="hidden">
+      <label for="fileInput" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded cursor-pointer transition">
+        Select File
+      </label>
+    </div>
+
+    <div id="file-info" class="mt-4 hidden">
+      <div class="flex items-center justify-between bg-gray-100 p-3 rounded">
+        <span id="filename" class="font-medium"></span>
+        <button id="remove-file" class="text-red-500 hover:text-red-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <button id="upload-btn" class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition">
+        Start Conversion
+      </button>
+    </div>
+
+    <div id="disclaimer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+      <div class="bg-white p-6 rounded-lg max-w-md mx-4">
+        <h2 class="text-xl font-bold mb-4">Disclaimer</h2>
+        <p class="mb-4 text-gray-700">
+          This tool is for backup purposes only. You must own the original Wii game.
+          PS2 compatibility is not guaranteed.
+        </p>
+        <button id="accept-disclaimer" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+          I Understand
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Show disclaimer on first visit
+      if (!localStorage.getItem('disclaimerAccepted')) {
+        document.getElementById('disclaimer-modal').classList.remove('hidden');
+      }
+
+      document.getElementById('accept-disclaimer').addEventListener('click', () => {
+        localStorage.setItem('disclaimerAccepted', 'true');
+        document.getElementById('disclaimer-modal').classList.add('hidden');
+      });
+
+      // File upload handling
+      const dropArea = document.getElementById('drop-area');
+      const fileInput = document.getElementById('fileInput');
+      const fileInfo = document.getElementById('file-info');
+      const filename = document.getElementById('filename');
+      const removeFile = document.getElementById('remove-file');
+      const uploadBtn = document.getElementById('upload-btn');
+
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+      });
+
+      function highlight() {
+        dropArea.classList.add('border-blue-400', 'bg-blue-50');
+      }
+
+      function unhighlight() {
+        dropArea.classList.remove('border-blue-400', 'bg-blue-50');
+      }
+
+      dropArea.addEventListener('drop', handleDrop, false);
+      fileInput.addEventListener('change', handleFiles, false);
+
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles({ target: { files } });
+      }
+
+      function handleFiles(e) {
+        const file = e.target.files[0];
+        if (file && file.name.endsWith('.rvz')) {
+          filename.textContent = file.name;
+          fileInfo.classList.remove('hidden');
+        }
+      }
+
+      removeFile.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInfo.classList.add('hidden');
+      });
+
+      uploadBtn.addEventListener('click', () => {
+        if (fileInput.files.length > 0) {
+          const formData = new FormData();
+          formData.append('rvzFile', fileInput.files[0]);
+          
+          fetch('/upload', {
+            method: 'POST',
+            body: formData
+          }).then(response => {
+            if (response.ok) window.location.href = '/process';
+            else alert('Upload failed');
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
