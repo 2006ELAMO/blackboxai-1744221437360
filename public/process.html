@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Converting - Wii to PS2 Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center">
+  <div class="max-w-md mx-auto p-8 bg-white rounded-lg shadow-xl w-full text-center">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">
+      <i class="fas fa-cog fa-spin mr-2"></i>Converting...
+    </h1>
+    
+    <div class="space-y-6">
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-sm font-medium">Extracting Wii files</span>
+          <span id="extract-percent" class="text-sm">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div id="extract-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-sm font-medium">Converting formats</span>
+          <span id="convert-percent" class="text-sm">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div id="convert-bar" class="bg-yellow-500 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-sm font-medium">Creating PS2 ISO</span>
+          <span id="iso-percent" class="text-sm">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div id="iso-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="error-message" class="mt-6 text-red-500 hidden"></div>
+    <button id="cancel-btn" class="mt-8 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition">
+      Cancel Conversion
+    </button>
+  </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const cancelBtn = document.getElementById('cancel-btn');
+      const errorMessage = document.getElementById('error-message');
+      const socket = new WebSocket(`ws://${window.location.host}`);
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.error) {
+          errorMessage.textContent = data.error;
+          errorMessage.classList.remove('hidden');
+          return;
+        }
+
+        const bar = document.getElementById(`${data.stage}-bar`);
+        const percent = document.getElementById(`${data.stage}-percent`);
+        
+        if (bar && percent) {
+          bar.style.width = `${data.percent}%`;
+          percent.textContent = `${data.percent}%`;
+        }
+
+        if (data.stage === 'iso' && data.percent === 100) {
+          setTimeout(() => window.location.href = '/result', 1000);
+        }
+      };
+
+      socket.onerror = (err) => {
+        errorMessage.textContent = 'Connection error: ' + err.message;
+        errorMessage.classList.remove('hidden');
+      };
+
+      cancelBtn.addEventListener('click', () => {
+        fetch('/cancel', { method: 'POST' })
+          .then(() => window.location.href = '/')
+          .catch(err => {
+            errorMessage.textContent = 'Failed to cancel: ' + err.message;
+            errorMessage.classList.remove('hidden');
+          });
+      });
+    });
+  </script>
+</body>
+</html>
